@@ -29,7 +29,7 @@ def in_zoom_meeting():
         except subprocess.CalledProcessError:
             continue
         logging.debug('Found a window named {!r}, {!r}'.format(name, stdout))
-        if re.match(r'^WM_CLASS\(STRING\) = "\s*zoom\s*"', stdout, flags=re.IGNORECASE):
+        if re.match(r'^WM_CLASS\(STRING\) = .*\bzoom\b', stdout, flags=re.IGNORECASE):
             logging.debug('In a Zoom meeting')
             return True
     return False
