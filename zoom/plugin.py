@@ -22,13 +22,25 @@ context = None
 
 
 def in_zoom_meeting():
-    for name in ['Zoom Meeting', 'as_toolbar']:
+    windows = [('-name', 'Zoom Meeting'), ('-name', 'as_toolbar')]
+
+    # Check for open meeting windows to probe by ID. Required as of Gnome 44 (Wayland) when the
+    # previous query method stopped working, likely due to Wayland changes.
+    with subprocess.Popen(['wmctrl', '-l'], encoding='utf-8', stdout=subprocess.PIPE) as p:
+        for line in p.stdout:
+            line = line.strip()
+            if line.endswith('Zoom Meeting'):
+                window_id, _ = line.split(None, 1)
+                logging.debug('Found candidate window %s', window_id)
+                windows.insert(0, ('-id', window_id))
+
+    for selector, value in windows:
         try:
             stdout = subprocess.check_output(
-                ['xprop', '-name', name, 'WM_CLASS'], encoding='utf-8').rstrip()
+                ['xprop', selector, value, 'WM_CLASS'], encoding='utf-8').rstrip()
         except subprocess.CalledProcessError:
             continue
-        logging.debug('Found a window named {!r}, {!r}'.format(name, stdout))
+        logging.debug('Found window %s %s, %r', selector, value, stdout)
         if re.match(r'^WM_CLASS\(STRING\) = .*\bzoom\b', stdout, flags=re.IGNORECASE):
             logging.debug('In a Zoom meeting')
             return True
